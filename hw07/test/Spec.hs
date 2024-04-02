@@ -27,10 +27,9 @@ testParser =
 
     ];
     trikyTests = testGroup "Triky tests" [
-        testCase "sqrt sqrt == Error" $ runParser parseExpression "sqrt sqrt" @?= Left (ParserErr "sqrt is not an ident!")
-      , testCase "sqrt == Error" $ runParser parseExpression "sqrt" @?= Left (ParserErr "sqrt is not an ident!")
-      , testCase "-123 == Error" $ runParser parseExpression "-123" @?= Left (ParserErr "predicate doesn't hold")
-
+        testCase "sqrt sqrt == Error" $ runParser parseExpression "sqrt sqrt" @?= Left (ParserErr "digit expected!")
+      , testCase "sqrt == Error" $ runParser parseExpression "sqrt" @?= Left (ParserErr "digit expected!")
+      , testCase "-123 == Error" $ runParser parseExpression "-123" @?= Left (ParserErr "digit expected!")
     ]
     }
 

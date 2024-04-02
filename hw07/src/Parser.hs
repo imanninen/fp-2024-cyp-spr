@@ -59,25 +59,26 @@ instance Alternative Parser where
       Left _ -> runParser r str
 
 -- This function creates a parser which checks that a predicate holds for the first character of an input string.  
-satisfy :: (Char -> Bool) -> Parser Char
-satisfy p = Parser $ \str ->
+satisfy :: (Char -> Bool) -> String -> Parser Char
+satisfy p errMsg = Parser $ \str ->
   case str of
     (h:t) | p h -> Right (t, h)
-    _ -> Left $ ParserErr "predicate doesn't hold"
+    _ -> Left $ ParserErr errMsg
 
 -- Ident = Alpha AlphaNum*
 -- starts with letter 
 -- continues with a sequence (possibly empty) of letter or digits
 parseIdent :: Parser String
 parseIdent = do
-    h <- satisfy isAlpha 
-    t <- go              
-    if (h:t) `elem` keywords 
-      then return empty -- there it should fails but it not :( 
-      else return (h : t)       -- we compose the result 
+    h <- satisfy isAlpha "is not an alpha"
+    t <- go
+    let name = h:t       
+    if name `elem` keywords 
+      then failParser "sqrt is not an ident!!" -- there it should fails but it not :( 
+      else return (h : t)       
   where
     go = (do                    -- a sequence of symbols is a symbol followed by the sequence or an empty sequence. 
-        x <- satisfy isAlphaNum -- the first symbol is either a letter or a digit
+        x <- satisfy isAlphaNum "is not alpha or num" -- the first symbol is either a letter or a digit
         y <- go                 -- then goes the sequence
         return (x : y))         -- and we return the result 
       <|>
@@ -88,9 +89,9 @@ parseIdent = do
 -- Both parentheses and the "something" are parameters. 
 inParens :: Char -> Char -> Parser a -> Parser a
 inParens l r p = do
-  satisfy (== l) -- we don't bind the result of parsing here (btw, what is its type?) because we don't need it
+  satisfy (== l) "Bad!" -- we don't bind the result of parsing here (btw, what is its type?) because we don't need it
   x <- p         -- the only thing we need is the result of parsing the "something"
-  satisfy (== r) -- throw away this result also 
+  satisfy (== r) "Bad!"-- throw away this result also 
   return x       -- no parentheses made it into the result 
 
 -- A tuple is a sequence of identifiers, separated by ',' in parentheses
@@ -105,7 +106,7 @@ parseIdentList = map length <$> inParens '[' ']' identSequence
 parsePair :: Parser (String, String)
 parsePair = inParens '(' ')' $ do
   x <- parseIdent
-  satisfy (== ',')
+  satisfy (== ',') "not a ','!"
   y <- parseIdent
   return (x, y)
 
@@ -113,7 +114,7 @@ parsePair = inParens '(' ')' $ do
 -- <* functions the same ways as does <*> but ignores its result on the right
 parsePair' :: Parser (String, String)
 parsePair' = inParens '(' ')'
-  ((,) <$> parseIdent <* satisfy (== ',') <*> parseIdent)
+  ((,) <$> parseIdent <* satisfy (== ',') "not a ','!" <*> parseIdent)
 
 -- A sequence of identifiers separated by commas is: 
 -- a single identifier followed by a sequence of comma-identifier pairs
@@ -124,11 +125,14 @@ parsePair' = inParens '(' ')'
 identSequence :: Parser [String]
 identSequence = (do
     h <- parseIdent
-    t <- many (satisfy (== ',') >> parseIdent)
+    t <- many (satisfy (== ',') "not a ','!" >> parseIdent)
     return (h : t)
   )
   <|>
     return []
+
+failParser :: String -> Parser a
+failParser err = Parser $ \_ -> Left $ ParserErr err
 
 keywords :: [String]
 keywords = ["sqrt"]
@@ -138,10 +142,10 @@ binOperationsList = ['+', '-', '*', '/', '^']
 
 parseBinOp :: Parser (Expr Int)
 parseBinOp = do
-  op <- satisfy binop
-  satisfy (== ' ')
+  op <- satisfy binop "not a binory operation!"
+  satisfy (== ' ') "not a ' '!"
   a <- parseExpression
-  satisfy (== ' ')
+  satisfy (== ' ') "not a ' '!"
   b <- parseExpression
   case op of
     '+' -> return $ Bin Plus a b
@@ -157,12 +161,12 @@ helpFunc list = read list :: Int
 
 parseInt:: Parser Int
 parseInt = do
-    a <- satisfy isDigit
+    a <- satisfy isDigit "digit expected!"
     b <- go
     return $ helpFunc (a:b)
   where
     go = (do
-      x <- satisfy isDigit
+      x <- satisfy isDigit "digit expected!"
       y <- go
       return (x:y)) <|>
       return []
@@ -184,7 +188,7 @@ satisfySqrtKeyWord = Parser $ \str ->
 parseUnoOp :: Parser (Expr Int)
 parseUnoOp = do
   satisfySqrtKeyWord
-  satisfy (==' ')
+  satisfy (==' ') "is not a ' '!"
   fmap (Uno Sqrt) parseExpression
 
 
