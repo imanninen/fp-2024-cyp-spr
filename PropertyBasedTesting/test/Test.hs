@@ -4,6 +4,7 @@ import qualified Test.Sort
 import qualified Test.List
 import qualified Test.Expr
 import qualified Test.Unit
+import Test.MyTests (props)
 
 main :: IO ()
 main = do
@@ -12,4 +13,5 @@ main = do
                 , testGroup "List" Test.List.props
                 , testGroup "Expr" Test.Expr.props
                 , testGroup "Unit" Test.Unit.unitTests
+                , testGroup "MyTests" props
                 ])

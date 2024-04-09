@@ -1,6 +1,6 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.35.2.
+-- This file has been generated from package.yaml by hpack version 0.36.0.
 --
 -- see: https://github.com/sol/hpack
 
@@ -32,6 +32,12 @@ library
       Expr.Parser
       Expr.Prefix
       List
+      MyExpr.Error
+      MyExpr.Expr
+      MyExpr.Parser
+      MyExpr.PrintUtils
+      MyExpr.Simplify
+      MyExpr.StateDemo
       Sort
   other-modules:
       Paths_PBT
@@ -62,6 +68,7 @@ test-suite test
   other-modules:
       Test.Expr
       Test.List
+      Test.MyTests
       Test.Sort
       Test.Unit
       Paths_PBT
