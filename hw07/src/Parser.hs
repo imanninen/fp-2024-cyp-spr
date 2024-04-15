@@ -9,6 +9,7 @@ import Control.Applicative ( Alternative((<|>), empty, many) )
 import Expr (Expr(..), BinOpeation(..), UnoOperation(..))
 import Error (Error(..))
 import GHC.Num.BigNat (bigNatPopCount)
+import GHC.OldList (find)
 
 newtype Parser a
   = Parser { runParser :: String -> Either Error (String, a)}
@@ -72,10 +73,10 @@ parseIdent :: Parser String
 parseIdent = do
     h <- satisfy isAlpha "is not an alpha"
     t <- go
-    let name = h:t       
-    if name `elem` keywords 
-      then failParser "sqrt is not an ident!!" -- there it should fails but it not :( 
-      else return (h : t)       
+    let name = h:t
+    if name `elem` keywords
+      then failParser "sqrt is not an ident!!"
+      else return (h : t)
   where
     go = (do                    -- a sequence of symbols is a symbol followed by the sequence or an empty sequence. 
         x <- satisfy isAlphaNum "is not alpha or num" -- the first symbol is either a letter or a digit
@@ -95,19 +96,19 @@ inParens l r p = do
   return x       -- no parentheses made it into the result 
 
 -- A tuple is a sequence of identifiers, separated by ',' in parentheses
-parseIdentTuple :: Parser [String]
-parseIdentTuple = inParens '(' ')' identSequence
+-- parseIdentTuple :: Parser [String]
+-- parseIdentTuple = inParens '(' ')' identSequence
 
 -- This parser not only parses the list of identifiers, but also computes their lengths
-parseIdentList :: Parser [Int]
-parseIdentList = map length <$> inParens '[' ']' identSequence
+parseIdentList :: Parser [(String, Int)]
+parseIdentList = inParens '[' ']' identSequence
 
 -- A pair is two identifiers with a comma in between, surrounded by parentheses
-parsePair :: Parser (String, String)
+parsePair :: Parser (String, Int)
 parsePair = inParens '(' ')' $ do
   x <- parseIdent
   satisfy (== ',') "not a ','!"
-  y <- parseIdent
+  y <- parseInt
   return (x, y)
 
 -- This is the same parser as parsePair written in the applicative style
@@ -122,10 +123,10 @@ parsePair' = inParens '(' ')'
 -- Here we use the function `many :: Alternative f => f a -> f [a]` which applies its argument multiple times (until the first failure)
 -- and then collects the results in the list. 
 -- The function `>>` is the same as `>>=`, but it ignores its left result, only performing the effect. 
-identSequence :: Parser [String]
+identSequence :: Parser [(String, Int)]
 identSequence = (do
-    h <- parseIdent
-    t <- many (satisfy (== ',') "not a ','!" >> parseIdent)
+    h <- parsePair
+    t <- many (satisfy (== ',') "not a ','!" >> parsePair)
     return (h : t)
   )
   <|>
@@ -137,23 +138,31 @@ failParser err = Parser $ \_ -> Left $ ParserErr err
 keywords :: [String]
 keywords = ["sqrt"]
 
-binOperationsList :: [Char]
-binOperationsList = ['+', '-', '*', '/', '^']
+binOperationsList :: [(Char, BinOpeation)]
+binOperationsList = [('+', Plus), ('-', Minus), ('*', Mult), ('/', Div), ('^', Pow)]
+
+
+-- binop = (`elem` ( fst <$> binOperationsList))
+
+satisfyForBinOp :: String -> Parser BinOpeation
+satisfyForBinOp errMsg = Parser $ \str ->
+  case str of
+    (h:t)  -> case find ((==) h . fst) binOperationsList of
+                    Just (_, op) -> Right (t, op)
+                    Nothing -> Left $ ParserErr errMsg
+    _ -> Left $ ParserErr errMsg
+
+parseBinOper :: Parser BinOpeation
+parseBinOper = do
+  satisfyForBinOp "not a binory operation!"
 
 parseBinOp :: Parser (Expr Int)
 parseBinOp = do
-  op <- satisfy binop "not a binory operation!"
+  op <- parseBinOper
   satisfy (== ' ') "not a ' '!"
   a <- parseExpression
   satisfy (== ' ') "not a ' '!"
-  b <- parseExpression
-  case op of
-    '+' -> return $ Bin Plus a b
-    '-' -> return $ Bin Minus a b
-    '*' -> return $ Bin Mult a b
-    '/' -> return $ Bin Div a b
-    '^' -> return $ Bin Pow a b
-  where binop = (`elem` binOperationsList)
+  Bin op a <$> parseExpression
 
 
 helpFunc :: String -> Int
