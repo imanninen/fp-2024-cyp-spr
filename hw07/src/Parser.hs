@@ -142,7 +142,6 @@ binOperationsList :: [(Char, BinOpeation)]
 binOperationsList = [('+', Plus), ('-', Minus), ('*', Mult), ('/', Div), ('^', Pow)]
 
 
--- binop = (`elem` ( fst <$> binOperationsList))
 
 satisfyForBinOp :: String -> Parser BinOpeation
 satisfyForBinOp errMsg = Parser $ \str ->
@@ -191,7 +190,7 @@ parseVar = do
 satisfySqrtKeyWord :: Parser [Char]
 satisfySqrtKeyWord = Parser $ \str ->
   case str of
-    s:q:r:t:l | [s, q, r, t] == "sqrt" -> Right ( l, "sqrt")
+    's':'q':'r':'t':l -> Right ( l, "sqrt")
     _ -> Left $ ParserErr "sqrt expected!"
 
 parseUnoOp :: Parser (Expr Int)

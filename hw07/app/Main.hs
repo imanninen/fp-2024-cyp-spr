@@ -4,7 +4,7 @@ import Parser (Parser(..), runParser, parseExpression, parseBinOp)
 
 myApp :: IO ()
 myApp = do
-  putStrLn "Please enter the expression in presix notation to parse it!"
+  putStrLn "Please enter the expression in presix notation to parse it! Or type exit to leave!"
   line <- getLine
   case line of 
     "exit" -> putStrLn "Bye!"
